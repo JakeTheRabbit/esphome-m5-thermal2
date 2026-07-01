@@ -1,0 +1,92 @@
+# M5Stack Unit Thermal2 (MLX90640, 110deg FoV) on an M5Stack ATOM Lite/Matrix.
+#
+# Wiring: plug the Unit Thermal2 into the ATOM's Grove port (5V — the unit needs 5V).
+#   Grove Red=5V  Black=GND  Yellow=SDA(G26)  White=SCL(G32)
+#
+# Flash from the repo root (the dir that contains the m5_thermal2/ folder):
+#   esphome run thermal2-atomlite.yaml
+#
+# ATOMS3 / ATOMS3 Lite instead? change:
+#   esp32.board: m5stack-atoms3   and   i2c.sda: GPIO2 / i2c.scl: GPIO1
+
+substitutions:
+  name: thermal2-atom
+
+esphome:
+  name: ${name}
+
+esp32:
+  board: m5stack-atom        # ATOMS3: m5stack-atoms3  | generic fallback: esp32dev
+
+logger:
+
+api:
+ota:
+  - platform: esphome
+
+wifi:
+  ssid: "YOUR_WIFI_SSID"          # or: !secret wifi_ssid
+  password: "YOUR_WIFI_PASSWORD"  # or: !secret wifi_password
+
+# Pulls the m5_thermal2 component straight from GitHub — nothing to copy locally.
+external_components:
+  - source: github://JakeTheRabbit/esphome-m5-thermal2@main
+    components: [m5_thermal2]
+
+i2c:
+  sda: GPIO26                 # ATOM Lite/Matrix Grove SDA
+  scl: GPIO32                 # ATOM Lite/Matrix Grove SCL
+  frequency: 400000          # unit default; plenty for the small summary reads
+  scan: true                 # logs detected addresses on boot — confirm 0x32
+
+m5_thermal2:
+  id: thermal
+  address: 0x32              # unit's on-board MCU (NOT the raw MLX90640 0x33)
+  refresh_rate: "16Hz"       # 0.5Hz..64Hz (64Hz needs faster I2C; 16Hz is safe)
+  noise_filter: 8            # 0 (off) .. 15
+  update_interval: 5s
+  # monitor_area:            # area used for alarm min/max/avg (center-weighted)
+  #   width: 15              # 0..15
+  #   height: 11             # 0..11
+
+sensor:
+  - platform: m5_thermal2
+    m5_thermal2_id: thermal
+    average_temperature:
+      name: "Thermal Average"
+    max_temperature:
+      name: "Thermal Max"
+    min_temperature:
+      name: "Thermal Min"
+    median_temperature:
+      name: "Thermal Median"
+    diff_temperature:
+      name: "Thermal Max Difference"
+    hotspot_x:
+      name: "Thermal Hotspot X"
+    hotspot_y:
+      name: "Thermal Hotspot Y"
+
+binary_sensor:
+  - platform: m5_thermal2
+    m5_thermal2_id: thermal
+    button:
+      name: "Thermal Button"
+
+# Optional: drive the unit's RGB LED + buzzer from Home Assistant.
+switch:
+  - platform: template
+    name: "Thermal LED"
+    optimistic: true
+    turn_on_action:
+      - lambda: "id(thermal).set_led(0, 16, 0);"
+    turn_off_action:
+      - lambda: "id(thermal).led_off();"
+
+button:
+  - platform: template
+    name: "Thermal Beep"
+    on_press:
+      - lambda: "id(thermal).set_buzzer(2000, 64); id(thermal).buzzer_on();"
+      - delay: 200ms
+      - lambda: "id(thermal).buzzer_off();"

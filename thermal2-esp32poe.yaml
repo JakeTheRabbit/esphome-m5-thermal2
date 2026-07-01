@@ -1,0 +1,95 @@
+# M5Stack Unit Thermal2 (MLX90640, 110deg FoV) on an Olimex ESP32-PoE / ESP32-PoE-ISO.
+#
+# The ESP32-PoE has no Grove socket — wire the unit's Grove tail to the UEXT/header:
+#   Grove Red=5V -> 5V    Black=GND -> GND    Yellow=SDA -> GPIO13    White=SCL -> GPIO16
+# (GPIO13/16 are the only free I2C-safe pins; the LAN8720 ethernet consumes
+#  GPIO 17,18,19,21,22,23,25,26,27 and GPIO12 for PHY power — do not reuse those.)
+#
+# Flash from the repo root:
+#   esphome run thermal2-esp32poe.yaml
+
+substitutions:
+  name: thermal2-poe
+
+esphome:
+  name: ${name}
+  # Example: buzz + flash red when any monitored pixel exceeds 50 C. This runs on
+  # the unit's own MCU, so it keeps working even if the network drops.
+  on_boot:
+    priority: -100
+    then:
+      - lambda: |-
+          // high alarm at 50 C, 250 ms beep cycle, 6 kHz buzzer, red LED
+          id(thermal).set_alarm_high(50.0, 25, 6000, 64, 0, 0);
+          id(thermal).alarm_on();
+
+esp32:
+  board: esp32-poe           # ESP32-PoE-ISO: esp32-poe-iso | generic fallback: esp32dev
+
+logger:
+
+api:
+ota:
+  - platform: esphome
+
+# Olimex ESP32-PoE LAN8720 ethernet. WROVER board revision: change clk pin to GPIO0.
+ethernet:
+  type: LAN8720
+  mdc_pin: GPIO23
+  mdio_pin: GPIO18
+  clk:
+    pin: GPIO17              # WROVER variant: GPIO0
+    mode: CLK_OUT
+  phy_addr: 0
+  power_pin: GPIO12
+
+external_components:
+  - source: github://JakeTheRabbit/esphome-m5-thermal2@main
+    components: [m5_thermal2]
+
+i2c:
+  sda: GPIO13                 # ESP32-PoE UEXT SDA (free pin)
+  scl: GPIO16                 # ESP32-PoE UEXT SCL (free pin)
+  frequency: 400000
+  scan: true                 # confirm the unit shows up at 0x32 on boot
+
+m5_thermal2:
+  id: thermal
+  address: 0x32
+  refresh_rate: "16Hz"
+  noise_filter: 8
+  update_interval: 5s
+
+sensor:
+  - platform: m5_thermal2
+    m5_thermal2_id: thermal
+    average_temperature:
+      name: "Thermal Average"
+    max_temperature:
+      name: "Thermal Max"
+    min_temperature:
+      name: "Thermal Min"
+    median_temperature:
+      name: "Thermal Median"
+    diff_temperature:
+      name: "Thermal Max Difference"
+    hotspot_x:
+      name: "Thermal Hotspot X"
+    hotspot_y:
+      name: "Thermal Hotspot Y"
+
+binary_sensor:
+  - platform: m5_thermal2
+    m5_thermal2_id: thermal
+    button:
+      name: "Thermal Button"
+
+# Optional onboard LED + buzzer control + a hardware over-temperature alarm.
+switch:
+  - platform: template
+    name: "Thermal LED"
+    optimistic: true
+    turn_on_action:
+      - lambda: "id(thermal).set_led(0, 16, 0);"
+    turn_off_action:
+      - lambda: "id(thermal).led_off();"

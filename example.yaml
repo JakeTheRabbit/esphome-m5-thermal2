@@ -1,0 +1,89 @@
+# Reference config for the m5_thermal2 component (M5Stack Unit Thermal2, SKU U149).
+# This shows every option. For ready-to-flash board configs see the repo root:
+#   thermal2-atomlite.yaml   (ATOM Lite/Matrix/S3 over Grove)
+#   thermal2-esp32poe.yaml   (Olimex ESP32-PoE over UEXT)
+
+esphome:
+  name: thermal2-demo
+
+esp32:
+  board: esp32dev
+
+logger:
+api:
+ota:
+  - platform: esphome
+wifi:
+  ssid: "YOUR_WIFI_SSID"
+  password: "YOUR_WIFI_PASSWORD"
+
+external_components:
+  - source: github://JakeTheRabbit/esphome-m5-thermal2@main
+    components: [m5_thermal2]
+
+i2c:
+  sda: 21                   # set to your board's Grove/UEXT SDA
+  scl: 22                   # set to your board's Grove/UEXT SCL
+  frequency: 400000
+  scan: true
+
+m5_thermal2:
+  id: thermal
+  address: 0x32             # on-unit MCU; the raw MLX90640 (0x33) is NOT exposed
+  refresh_rate: "16Hz"      # 0.5Hz 1Hz 2Hz 4Hz 8Hz 16Hz 32Hz 64Hz
+  noise_filter: 8           # 0 (off) .. 15
+  update_interval: 5s       # how often ESPHome reads the summary registers
+  monitor_area:             # region the unit uses for its min/max/avg + alarms
+    width: 15               # 0..15  (15 = full width)
+    height: 11              # 0..11  (11 = full height)
+
+sensor:
+  - platform: m5_thermal2
+    m5_thermal2_id: thermal
+    average_temperature:
+      name: "Thermal Average"
+    median_temperature:
+      name: "Thermal Median"
+    max_temperature:
+      name: "Thermal Max"
+    min_temperature:
+      name: "Thermal Min"
+    diff_temperature:        # largest pixel-to-pixel difference in the frame
+      name: "Thermal Max Difference"
+    hotspot_x:               # column (0..31) of the hottest pixel
+      name: "Thermal Hotspot X"
+    hotspot_y:               # row (0..23) of the hottest pixel
+      name: "Thermal Hotspot Y"
+
+binary_sensor:
+  - platform: m5_thermal2
+    m5_thermal2_id: thermal
+    button:
+      name: "Thermal Button"
+
+# Onboard RGB LED + buzzer, driven from Home Assistant.
+switch:
+  - platform: template
+    name: "Thermal LED"
+    optimistic: true
+    turn_on_action:
+      - lambda: "id(thermal).set_led(0, 16, 0);"
+    turn_off_action:
+      - lambda: "id(thermal).led_off();"
+
+button:
+  - platform: template
+    name: "Thermal Beep"
+    on_press:
+      - lambda: "id(thermal).set_buzzer(2000, 64); id(thermal).buzzer_on();"
+      - delay: 200ms
+      - lambda: "id(thermal).buzzer_off();"
+
+# Hardware over-/under-temperature alarm — handled by the unit's own MCU, so it
+# fires (buzzer + LED) even with no network. Configure it once from any
+# automation, e.g. on_boot. API:
+#   id(thermal).set_alarm_high(temp_C, interval_x10ms, buzzer_freq_Hz, r, g, b);
+#   id(thermal).set_alarm_low(temp_C, interval_x10ms, buzzer_freq_Hz, r, g, b);
+#   id(thermal).alarm_on();   // enable all alarm sources
+#   id(thermal).alarm_off();  // disable all alarm sources
+# See thermal2-esp32poe.yaml for a worked on_boot example.
