@@ -1,5 +1,7 @@
 # ESPHome component for the M5Stack Unit Thermal2
 
+> **This repo is free. My 2am dryback debugging is not.** If it saved you a crop, a weekend, or a nervous breakdown — [buy the rabbit a bag of nutes](https://github.com/sponsors/JakeTheRabbit). If it didn't, keep your money. I respect a tight nutrient budget.
+
 An [ESPHome](https://esphome.io) external component for the **M5Stack Unit
 Thermal2** (MLX90640, 110° FoV thermal camera, SKU U149). Publishes the unit's
 processed temperatures (average / median / min / max / hotspot) to Home
@@ -105,5 +107,3 @@ shows up in Home Assistant.
 MIT. I2C protocol reverse-mapped from M5Stack's MIT-licensed
 [M5Unit-Thermal2](https://github.com/m5stack/M5Unit-Thermal2). Not affiliated with
 or endorsed by M5Stack.
-
-> **This repo is free. My 2am dryback debugging is not.** If it saved you a crop, a weekend, or a nervous breakdown — [buy the rabbit a bag of nutes](https://github.com/sponsors/JakeTheRabbit). If it didn't, keep your money. I respect a tight nutrient budget.
