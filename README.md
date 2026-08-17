@@ -105,3 +105,5 @@ shows up in Home Assistant.
 MIT. I2C protocol reverse-mapped from M5Stack's MIT-licensed
 [M5Unit-Thermal2](https://github.com/m5stack/M5Unit-Thermal2). Not affiliated with
 or endorsed by M5Stack.
+
+> **This repo is free. My 2am dryback debugging is not.** If it saved you a crop, a weekend, or a nervous breakdown — [buy the rabbit a bag of nutes](https://github.com/sponsors/JakeTheRabbit). If it didn't, keep your money. I respect a tight nutrient budget.
